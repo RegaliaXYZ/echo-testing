@@ -10,6 +10,23 @@ type CreateModelInput struct {
 
 // Upload Content
 
+type GlobalUploadContentInput struct {
+	Payload  []Payload `json:"payload" binding:"required"`
+	Complete string    `json:"complete" binding:"required"`
+}
+
+type Payload struct {
+	Utterance string `json:"utt" binding:"required"`
+	Intent    string `json:"intent,omitempty"`
+	Num       int    `json:"num,omitempty"`
+	Tags      []struct {
+		Name        string `json:"name" binding:"required"`
+		StartOffset int    `json:"start" binding:"required"`
+		EndOffset   int    `json:"end" binding:"required"`
+	} `json:"tags,omitempty"`
+	Type string `json:"type,omitempty"`
+}
+
 type NLUPayload struct {
 	Utterance string `json:"utt" binding:"required"`
 	Intent    string `json:"intent" binding:"required"`

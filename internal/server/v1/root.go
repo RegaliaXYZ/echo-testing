@@ -2,6 +2,7 @@ package v1
 
 import (
 	"bp-echo-test/internal/database"
+	"bp-echo-test/internal/utils"
 
 	"github.com/labstack/echo/v4"
 	"go.uber.org/zap"
@@ -10,6 +11,7 @@ import (
 type V1Handler struct {
 	database database.Service
 	logger   *zap.Logger
+	gcs      *utils.GoogleService
 }
 
 type V1Service interface {

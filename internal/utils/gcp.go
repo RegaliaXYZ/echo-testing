@@ -2,6 +2,7 @@ package utils
 
 import (
 	"context"
+	"encoding/json"
 
 	"cloud.google.com/go/storage"
 )
@@ -11,11 +12,13 @@ type GoogleService struct {
 }
 
 type GoogleServiceInterface interface {
-	WriteFolder(name string) error
-	DeleteFolder(name string) error
+	WriteFolder(path string) error
+	DeleteFolder(path string) error
 	WriteFile(path string, v any) error
-	DeleteFile(path string) error
+	GetWriter(path string) *storage.Writer
 	FileExists(path string) (bool, error)
+	ReadFile(path string, v any) error
+	DeleteFile(path string) error
 }
 
 func NewGoogleService(root_bucket string) GoogleServiceInterface {
@@ -29,10 +32,14 @@ func NewGoogleService(root_bucket string) GoogleServiceInterface {
 		root: gcp_handler,
 	}
 }
-
-func (g *GoogleService) WriteFolder(name string) error {
+func (g *GoogleService) GetWriter(path string) *storage.Writer {
 	ctx := context.Background()
-	folder := g.root.Object(name + "/")
+	return g.root.Object(path).NewWriter(ctx)
+}
+
+func (g *GoogleService) WriteFolder(path string) error {
+	ctx := context.Background()
+	folder := g.root.Object(path)
 	if _, err := folder.Attrs(ctx); err != nil {
 		if err == storage.ErrObjectNotExist {
 			return folder.NewWriter(ctx).Close()
@@ -63,6 +70,19 @@ func (g *GoogleService) FileExists(path string) (bool, error) {
 		return false, err
 	}
 	return true, nil
+}
+
+func (g *GoogleService) ReadFile(path string, v any) error {
+	ctx := context.Background()
+	r, err := g.root.Object(path).NewReader(ctx)
+	if err != nil {
+		return err
+	}
+	defer r.Close()
+	if err := json.NewDecoder(r).Decode(&v); err != nil {
+		return err
+	}
+	return nil
 }
 
 func (g *GoogleService) WriteFile(path string, v any) error {
