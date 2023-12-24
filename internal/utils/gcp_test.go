@@ -21,18 +21,15 @@ func generateRandomString(length int) string {
 }
 
 func TestGoogleService(t *testing.T) {
-	t.Parallel()
 
-	gcp_service := NewGoogleService()
+	gcp_service := NewGoogleService("ai-elephant-int")
 	random_string := generateRandomString(10)
 	t.Run("passing_test_write_folder", func(t *testing.T) {
-		t.Parallel()
 		err := gcp_service.WriteFolder(random_string)
 		assert.Nil(t, err)
 	})
 
 	t.Run("passing_write_file", func(t *testing.T) {
-		t.Parallel()
 		err := gcp_service.WriteFile(random_string+"_test.txt", []byte("test"))
 		assert.Nil(t, err)
 	})
@@ -52,7 +49,8 @@ func TestGoogleService(t *testing.T) {
 
 	t.Run("passing_test_delete_folder", func(t *testing.T) {
 		t.Parallel()
-		err := gcp_service.DeleteFile(random_string)
+		err := gcp_service.DeleteFolder(random_string)
 		assert.Nil(t, err)
 	})
+
 }

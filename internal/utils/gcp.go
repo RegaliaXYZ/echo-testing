@@ -2,7 +2,6 @@ package utils
 
 import (
 	"context"
-	"os"
 
 	"cloud.google.com/go/storage"
 )
@@ -13,19 +12,16 @@ type GoogleService struct {
 
 type GoogleServiceInterface interface {
 	WriteFolder(name string) error
+	DeleteFolder(name string) error
+	WriteFile(path string, v any) error
 	DeleteFile(path string) error
 	FileExists(path string) (bool, error)
-	WriteFile(path string, v any) error
 }
 
-func NewGoogleService() GoogleServiceInterface {
+func NewGoogleService(root_bucket string) GoogleServiceInterface {
 	gcp_client, err := storage.NewClient(context.Background())
 	if err != nil {
 		panic("cannot create gcp client")
-	}
-	root_bucket := os.Getenv("ROOT_BUCKET")
-	if root_bucket == "" {
-		panic("ROOT_BUCKET not set")
 	}
 	gcp_handler := gcp_client.Bucket(root_bucket)
 
@@ -36,7 +32,7 @@ func NewGoogleService() GoogleServiceInterface {
 
 func (g *GoogleService) WriteFolder(name string) error {
 	ctx := context.Background()
-	folder := g.root.Object(name)
+	folder := g.root.Object(name + "/")
 	if _, err := folder.Attrs(ctx); err != nil {
 		if err == storage.ErrObjectNotExist {
 			return folder.NewWriter(ctx).Close()
@@ -45,6 +41,11 @@ func (g *GoogleService) WriteFolder(name string) error {
 		}
 	}
 	return nil
+}
+
+func (g *GoogleService) DeleteFolder(path string) error {
+	ctx := context.Background()
+	return g.root.Object(path + "/").Delete(ctx)
 }
 
 func (g *GoogleService) DeleteFile(path string) error {
