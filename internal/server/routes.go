@@ -3,7 +3,6 @@ package server
 import (
 	v1 "bp-echo-test/internal/server/v1"
 	"net/http"
-	"os"
 	"strings"
 
 	"github.com/labstack/echo/v4"
@@ -11,7 +10,7 @@ import (
 	"go.uber.org/zap"
 )
 
-func (s *Server) RegisterRoutes() http.Handler {
+func (s *Server) RegisterRoutes(auth_token string) http.Handler {
 	e := echo.New()
 	//e.Use(middleware.Logger())
 	logger, _ := zap.NewDevelopment()
@@ -37,11 +36,7 @@ func (s *Server) RegisterRoutes() http.Handler {
 	}))
 
 	e.Use(middleware.Recover())
-	auth_token := os.Getenv("AUTH_TOKEN")
-	if auth_token == "" {
-		panic("AUTH_TOKEN not set")
-	}
-	logger.Debug("auth_token", zap.String("auth_token", auth_token))
+
 	e.Use(middleware.KeyAuthWithConfig(middleware.KeyAuthConfig{
 		AuthScheme: "Basic",
 		Validator:  func(auth string, c echo.Context) (bool, error) { return auth == auth_token, nil },

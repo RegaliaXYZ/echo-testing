@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"bp-echo-test/internal/database"
+
 	_ "github.com/joho/godotenv/autoload"
 )
 
@@ -23,10 +24,15 @@ func NewServer() *http.Server {
 		db:   database.New(),
 	}
 
+	auth_token := os.Getenv("AUTH_TOKEN")
+	if auth_token == "" {
+		panic("AUTH_TOKEN not set")
+	}
+
 	// Declare Server config
 	server := &http.Server{
 		Addr:         fmt.Sprintf(":%d", NewServer.port),
-		Handler:      NewServer.RegisterRoutes(),
+		Handler:      NewServer.RegisterRoutes(auth_token),
 		IdleTimeout:  time.Minute,
 		ReadTimeout:  10 * time.Second,
 		WriteTimeout: 30 * time.Second,
