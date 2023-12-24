@@ -71,7 +71,6 @@ func (s *service) fetch(query string, args ...interface{}) ([]Model, error) {
 	if err != nil {
 		return nil, err
 	}
-	fmt.Println("DONE WITH QUERY")
 	defer rows.Close()
 	var models []Model
 	for rows.Next() {

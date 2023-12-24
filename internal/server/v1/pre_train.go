@@ -3,6 +3,8 @@ package v1
 import (
 	"bp-echo-test/internal/database"
 	"bp-echo-test/internal/models"
+	"bp-echo-test/internal/utils"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"strings"
@@ -18,9 +20,10 @@ func (v1 *V1Handler) Create(c echo.Context) error {
 	if err := c.Bind(input); err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, "cannot bind input")
 	}
+	// v1.logger.Info("input", zap.Any("input", input), zap.String("tenant", tenant), zap.String("model_type", model_type))
 	model, err := v1.database.GetByName(tenant, model_type, input.Name)
-	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, "cannot get model")
+	if err != nil && err != database.ErrNotFound {
+		return echo.NewHTTPError(http.StatusInternalServerError, "cannot get model")
 	}
 	if model != (database.Model{}) {
 		return echo.NewHTTPError(http.StatusBadRequest, "model already exists")
@@ -49,28 +52,51 @@ func (v1 *V1Handler) Create(c echo.Context) error {
 func (v1 *V1Handler) UploadContent(c echo.Context) error {
 	tenant := strings.ToLower(c.Param("tenant"))
 	model_type := strings.ToLower(c.Param("model_type"))
-	model := strings.ToLower(c.Param("model"))
+	model_name := strings.ToLower(c.Param("model"))
 
-	// get request body
-
-	requestBody := c.Request().Body
-
-	// Your handling logic here
-
-	// Example: Reading the request body
-	// You may want to use a specific data structure or parse the body as needed.
-	// Here, we're just printing the body to the console.
-	buf := make([]byte, 0)
-	_, err := requestBody.Read(buf)
+	decoded, err := utils.GetEncodedData(c.Request().Body, c.Request().Header.Get("Content-Encoding"))
 	if err != nil {
-		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to read request body"})
+		fmt.Println(err)
+		return echo.NewHTTPError(http.StatusInternalServerError, "cannot decode body")
 	}
-	fmt.Println(string(buf))
+	var input interface{}
 
-	return c.JSON(http.StatusOK, map[string]string{
-		"status": "ok",
-		"tenant": tenant,
-		"type":   model_type,
-		"model":  model,
+	status := "populated"
+	if model_type == "nlu" {
+		input = new(models.UploadContentNLUInput)
+		if err := json.Unmarshal(decoded, &input); err != nil {
+			return echo.NewHTTPError(http.StatusBadRequest, "cannot bind input")
+		}
+		if strings.ToLower(input.(*models.UploadContentNLUInput).Complete) != "yes" {
+			status = "populating"
+		}
+	} else if model_type == "ner" {
+		input = new(models.UploadContentNERInput)
+		if err := json.Unmarshal(decoded, &input); err != nil {
+			return echo.NewHTTPError(http.StatusBadRequest, "cannot bind input")
+		}
+		if strings.ToLower(input.(*models.UploadContentNERInput).Complete) != "yes" {
+			status = "populating"
+		}
+	}
+	fmt.Println(input)
+	// check if input has complete field
+
+	v1.logger.Info(status)
+	model, err := v1.database.GetByName(tenant, model_type, model_name)
+	if err != nil && err != database.ErrNotFound {
+		return echo.NewHTTPError(http.StatusInternalServerError, "cannot get model")
+	}
+	if model == (database.Model{}) {
+		return echo.NewHTTPError(http.StatusNotFound, "model does not exist")
+	}
+
+	return c.JSON(http.StatusOK, map[string]any{
+		"status":     "ok",
+		"tenant":     tenant,
+		"type":       model_type,
+		"model_name": model_name,
+		"model":      model,
+		"input":      input,
 	})
 }

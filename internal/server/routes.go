@@ -57,7 +57,6 @@ func (s *Server) RegisterRoutes() http.Handler {
 		v1.Use(validateModelType)
 		v1.POST("/create", v1_handler.Create)
 		models := v1.Group("/models/:model")
-		models.Use(middleware.Decompress())
 		{
 			models.POST("/populate", v1_handler.UploadContent)
 		}
