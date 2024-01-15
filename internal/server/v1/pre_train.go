@@ -69,26 +69,6 @@ func (v1 *V1Handler) UploadContent(c echo.Context) error {
 	if strings.ToLower(input.Complete) != "yes" {
 		status = "populating"
 	}
-	/*
-		if model_type == "nlu" {
-			input = new(models.UploadContentNLUInput)
-			if err := json.Unmarshal(decoded, &input); err != nil {
-				return echo.NewHTTPError(http.StatusBadRequest, "cannot bind input")
-			}
-			if strings.ToLower(input.(*models.UploadContentNLUInput).Complete) != "yes" {
-				status = "populating"
-			}
-		} else if model_type == "ner" {
-			input = new(models.UploadContentNERInput)
-			if err := json.Unmarshal(decoded, &input); err != nil {
-				return echo.NewHTTPError(http.StatusBadRequest, "cannot bind input")
-			}
-			if strings.ToLower(input.(*models.UploadContentNERInput).Complete) != "yes" {
-				status = "populating"
-			}
-		}*/
-	fmt.Println(input)
-	// check if input has complete field
 
 	v1.logger.Info(status)
 	model, err := v1.database.GetByName(tenant, model_type, model_name)
@@ -99,11 +79,13 @@ func (v1 *V1Handler) UploadContent(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusNotFound, "model does not exist")
 	}
 
+	v1.logger.Info("model", zap.Any("model", model))
 	model_folder := "tenants/" + tenant + "/" + model_type + "/"
 	err = v1.gcs.WriteFolder(model_folder)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, "could not write folder")
 	}
+	v1.logger.Info("wrote to model_folder", zap.String("model_folder", model_folder))
 
 	json_full_filename := model_folder + model_name + "/json_corpus/" + model_name + "_full.json"
 	if status == "populated" {
@@ -124,6 +106,7 @@ func (v1 *V1Handler) UploadContent(c echo.Context) error {
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, "could not check if file exists")
 	}
+	v1.logger.Info("fileExists", zap.Bool("fileExists", fileExists))
 	if fileExists {
 		// read the file
 		err = v1.gcs.ReadFile(json_full_filename, &content)

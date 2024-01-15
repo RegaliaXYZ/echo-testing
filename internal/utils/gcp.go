@@ -39,7 +39,7 @@ func (g *GoogleService) GetWriter(path string) *storage.Writer {
 
 func (g *GoogleService) WriteFolder(path string) error {
 	ctx := context.Background()
-	folder := g.root.Object(path)
+	folder := g.root.Object(path + "/")
 	if _, err := folder.Attrs(ctx); err != nil {
 		if err == storage.ErrObjectNotExist {
 			return folder.NewWriter(ctx).Close()
@@ -90,7 +90,7 @@ func (g *GoogleService) WriteFile(path string, v any) error {
 
 	w := g.root.Object(path).NewWriter(ctx)
 	defer w.Close()
-	if _, err := w.Write(v.([]byte)); err != nil {
+	if err := json.NewEncoder(w).Encode(v); err != nil {
 		return err
 	}
 	return nil

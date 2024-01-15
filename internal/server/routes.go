@@ -45,12 +45,14 @@ func (s *Server) RegisterRoutes(auth_token string) http.Handler {
 	e.GET("/", s.HelloWorldHandler)
 	e.GET("/health", s.healthHandler)
 
-	v1_handler := v1.NewV1Handler(s.db, logger)
+	v1_handler := v1.NewV1Handler(s.db, logger, s.gcp_client)
 	v1 := e.Group("/api/v1/ml/tenants/:tenant/type/:model_type")
 	{
 
 		v1.Use(validateModelType)
-		v1.POST("/create", v1_handler.Create)
+		v1.DELETE("/models", v1_handler.DeleteModels)
+		v1.POST("/models", v1_handler.Create)
+		v1.GET("/models", v1_handler.ListModels)
 		models := v1.Group("/models/:model")
 		{
 			models.POST("/populate", v1_handler.UploadContent)
